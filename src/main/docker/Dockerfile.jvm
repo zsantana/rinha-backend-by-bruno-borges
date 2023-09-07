@@ -1,0 +1,55 @@
+FROM registry.access.redhat.com/ubi8/openjdk-17:1.16
+# FROM azul/zulu-openjdk:17-latest
+#FROM registry.access.redhat.com/ubi8/ubi-minimal
+
+ENV LANGUAGE='en_US:en'
+
+# We make four distinct layers so if there are application changes the library layers can be re-used
+COPY --chown=185 target/quarkus-app/lib/ /deployments/lib/
+COPY --chown=185 target/quarkus-app/*.jar /deployments/
+COPY --chown=185 target/quarkus-app/app/ /deployments/app/
+COPY --chown=185 target/quarkus-app/quarkus/ /deployments/quarkus/
+
+EXPOSE 8080
+USER 185
+
+# ENV QUARKUS_VERTX_MAX_EVENT_LOOP_EXECUTE_TIME=300S
+# -Djava.security.egd=file:/dev/urandom
+# -XX:+AlwaysPreTouch
+# 
+# -XX:ActiveProcessorCount=2
+# -XX:MaxRAMPercentage=75
+# -XX:+UseG1GC 
+# -Xlog:gc \
+
+#ENV JAVA_OPTS="-Xlog:gc -Dquarkus.http.host=0.0.0.0 -Djava.util.logging.manager=org.jboss.logmanager.LogManager -Djava.net.preferIPv4Stack=true"
+
+ENV JAVA_OPTS="-XX:+AlwaysPreTouch \
+  -XX:ActiveProcessorCount=2 \
+  -XX:MaxRAMPercentage=75 \
+  -Dquarkus.http.host=0.0.0.0 \
+  -Dquarkus.vertx.prefer-native-transport=true  \
+  -Dio.netty.buffer.checkBounds=false \
+  -Dio.netty.buffer.checkAccessible=false \
+  -Djava.util.logging.manager=org.jboss.logmanager.LogManager \
+  -Dquarkus.http.idle-timeout=0 \
+  -XX:+UseNUMA \
+  -Djava.lang.Integer.IntegerCache.high=10000 \
+  -Dvertx.disableURIValidation=true \
+  -Dvertx.disableHttpHeadersValidation=true \
+  -Dvertx.disableMetrics=true \
+  -Dvertx.disableH2c=true \
+  -Dvertx.disableWebsockets=true \
+  -Dvertx.flashPolicyHandler=false \
+  -Dvertx.threadChecks=false \
+  -Dvertx.disableContextTimings=true \
+  -Dhibernate.allow_update_outside_transaction=true \
+  -Dio.quarkus.vertx.core.runtime.context.VertxContextSafetyToggle.I_HAVE_CHECKED_EVERYTHING=true \
+  -Djboss.threads.eqe.statistics=false \
+  -Dmutiny.disableCallBackDecorators=true \
+  $@"
+
+#ENV JAVA_APP_JAR="/deployments/quarkus-run.jar"
+ENTRYPOINT [ "/opt/jboss/container/java/run/run-java.sh" ]
+
+#ENTRYPOINT java ${JAVA_OPTS} -jar /deployments/quarkus-run.jar
