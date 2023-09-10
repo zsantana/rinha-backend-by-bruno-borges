@@ -39,18 +39,24 @@ public class PessoaResource {
     @Produces(MediaType.APPLICATION_JSON)
     @WithSession
     public Uni<Response> findTop50(@QueryParam("t") String termo) {
-        
+        //logger.info("### Buscando pessoa: {} ", termo);
+
         if (termo == null || termo.isBlank()) {
             return Uni.createFrom().item(Response.status(Status.BAD_REQUEST).build());
         }
 
         List<Pessoas> foundInCache = cache.search(termo);
-        // if (foundInCache != null){
-
-        // }else{
-        //     Uni<List<Pessoa>> r = Pessoa.find("busca like '%' || ?1 || '%'", termo).page(0, 50).list();
-        // }
-        return Uni.createFrom().item(Response.ok(foundInCache).build());
+        
+        if (foundInCache != null){
+            //logger.info("### Buscando no CACHE: {} ", termo);
+            return Uni.createFrom().item(Response.ok(foundInCache).build());
+        } else{
+            logger.info("### Buscando no banco de dados: {} ", termo);
+             return Pessoas.<Pessoas>find("busca like '%' || ?1 || '%'", termo).page(0, 50).list()
+                    .onItem().ifNotNull().transform(entity -> Response.ok(entity).build())
+                    .onItem().ifNull().continueWith(Response.status(Status.NOT_FOUND)::build);
+        }
+       
     }
 
     @POST
@@ -58,33 +64,39 @@ public class PessoaResource {
     @Produces(MediaType.APPLICATION_JSON)
     public Uni<Response> create(Pessoas pessoa) {
 
-        String apelido = pessoa.getApelido();
-        String nome = pessoa.getNome();
+        try {
 
-        if (apelido == null || apelido.isBlank() || apelido.length() > 32
-                || nome == null || nome.isBlank() || nome.length() > 100 
-                || invalidStack(pessoa.getStack())
-                ) {
-            //logger.info("### Apelido fora do padrao permitido");
-            return Uni.createFrom().item(Response.status(Status.BAD_REQUEST).build());
-        }
+            String apelido = pessoa.getApelido();
+            String nome = pessoa.getNome();
 
-        if (pessoaByApelidoExists(pessoa.getApelido())) {
-            return Uni.createFrom().item(Response.status(422).build());
-        }
+            if (apelido == null || apelido.isBlank() || apelido.length() > 32
+                    || nome == null || nome.isBlank() || nome.length() > 100 
+                    || invalidStack(pessoa.getStack())
+                    ) {
+                //logger.info("### Apelido fora do padrao permitido");
+                return Uni.createFrom().item(Response.status(Status.BAD_REQUEST).build());
+            }
 
-        var uuid = UUID.randomUUID();
-        //logger.info("Gerando UUID: {}", uuid);
+            if (pessoaByApelidoExists(pessoa.getApelido())) {
+                return Uni.createFrom().item(Response.status(422).build());
+            }
 
-        pessoa.setId(uuid);
-        cache.insertPessoa(pessoa);
+            var uuid = UUID.randomUUID();
+            //logger.info("Gerando UUID: {}", uuid);
 
-        return Panache
-                .withTransaction(pessoa::persist)
-                .replaceWith(Response.status(Status.CREATED).entity(pessoa)
-                .header("Location", "/pessoas/" + uuid.toString())
-                .build());
-                            
+            pessoa.setId(uuid);
+            cache.insertPessoa(pessoa);
+
+            return Panache
+                    .withTransaction(pessoa::persist)
+                    .replaceWith(Response.status(Status.CREATED).entity(pessoa)
+                    .header("Location", "/pessoas/" + uuid.toString())
+                    .build());
+                    
+        } catch (Exception e) {
+            logger.error("### ERRO: {}", e.getMessage());
+            return Uni.createFrom().item(Response.status(Status.INTERNAL_SERVER_ERROR).build());
+        }                    
     }
 
     
@@ -93,20 +105,26 @@ public class PessoaResource {
     @Produces(MediaType.APPLICATION_JSON)
     @WithSession
     public Uni<Response> get(@PathParam("id") String id) {
-        
-        var foundInCache = cache.getPessoa(id);
-        //logger.info("Buscando ID {}", id);
 
-        if (foundInCache != null) {
-            //logger.info("Registro encontrado em Cache: " + id);
-            return Uni.createFrom().item(Response.ok(foundInCache).build());
-        } else {
-            //logger.info("Buscando registro do banco de dados: " + id);
-            return Panache
-                    .withTransaction(() -> Pessoas.<Pessoas> findById(UUID.fromString(id)))
-                    .onItem().ifNotNull().transform(entity -> Response.ok(entity).build())
-                    .onItem().ifNull().continueWith(Response.ok().status(Status.NOT_FOUND)::build);
-            
+        try {
+        
+            var foundInCache = cache.getPessoa(id);
+            //logger.info("Buscando ID {}", id);
+
+            if (foundInCache != null) {
+                //logger.info("Registro encontrado em Cache: " + id);
+                return Uni.createFrom().item(Response.ok(foundInCache).build());
+            } else {
+                //logger.info("Buscando registro do banco de dados: " + id);
+                return Pessoas.<Pessoas>findById(UUID.fromString(id))
+                        .onItem().ifNotNull().transform(entity -> Response.ok(entity).build())
+                        .onItem().ifNull().continueWith(Response.status(Status.NOT_FOUND)::build);
+                
+            }
+
+        } catch (Exception e) {
+            logger.error("### ERRO: {}", e.getMessage());
+            return Uni.createFrom().item(Response.status(Status.INTERNAL_SERVER_ERROR).build());
         }
         
     }
@@ -125,26 +143,6 @@ public class PessoaResource {
 
     public List<String> convertToEntityAttribute(String string) {
         return string != null ? Arrays.asList(string.split(";")) : emptyList();
-    }
-
-
-    @POST
-    @Path("/pessoas-mock")
-    @Produces(MediaType.APPLICATION_JSON)
-    public Uni<Response> create_mock(Pessoas pessoa) {
-
-        var uuid = UUID.randomUUID();
-        //logger.info("Gerando UUID: {}", uuid);
-
-        pessoa.setId(uuid);
-        cache.insertPessoa(pessoa);
-
-        return Panache
-                .withTransaction(pessoa::persist)
-                .replaceWith(Response.status(Status.CREATED).entity(pessoa)
-                //.header("Location", "/pessoa/" + uuid.toString())
-                .build());
-                            
     }
 
 

@@ -9,10 +9,9 @@ services:
     hostname: api1
     environment:
       - SERVER_PORT=8080
-      - DATABASE_URL=vertx-reactive:postgresql://db-postgresql:5432/rinhadb
+      - DATABASE_URL=vertx-reactive:postgresql://localhost:5432/rinhadb
       - DATABASE_USERNAME=rinha
       - DATABASE_PASSWORD=rinha123
-      - OTHER_API_URL=http://api2:8080
     depends_on:
       db-postgresql:
         condition: service_healthy
@@ -31,8 +30,9 @@ services:
       retries: 60
       start_period: 20s
       timeout: 5s
-    networks:
-      - "app-network"
+    network_mode: "host"  
+    # networks:
+    #   - "app-network"
 
   api2:
     build:
@@ -40,11 +40,12 @@ services:
       dockerfile: src/main/docker/Dockerfile.jvm
     hostname: api2
     environment:
-      - SERVER_PORT=8080
-      - DATABASE_URL=vertx-reactive:postgresql://db-postgresql:5432/rinhadb
+      - SERVER_PORT=8090
+      - DATABASE_URL=vertx-reactive:postgresql://localhost:5432/rinhadb
       - DATABASE_USERNAME=rinha
       - DATABASE_PASSWORD=rinha123
-      - OTHER_API_URL=http://api1:8080
+    # ports:
+    #   - "8090:8080"  
     depends_on:
       db-postgresql:
         condition: service_healthy
@@ -58,13 +59,14 @@ services:
           cpus: '0.35'
           memory: '512MB'
     healthcheck:
-      test: curl -o /dev/null -s --retry 0 --head http://localhost:8080/ || exit 1
+      test: curl -o /dev/null -s --retry 0 --head http://localhost:8090/ || exit 1
       interval: 10s
       retries: 60
       start_period: 20s
       timeout: 5s
-    networks:
-      - "app-network"
+    network_mode: "host"    
+    # networks:
+    #   - "app-network"
 
   nginx:
     image: nginx:latest
@@ -86,8 +88,14 @@ services:
         limits:
           cpus: '0.9'
           memory: '0.5GB'
-    networks:
-      - "app-network"
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"  # Tamanho máximo do arquivo de log
+        max-file: "10"     # Número máximo de arquivos de log
+    network_mode: "host"
+    # networks:
+    #   - "app-network"
 
   db-postgresql:
     image: postgres:latest
@@ -114,8 +122,9 @@ services:
       timeout: 5s
       retries: 20
       start_period: 10s
-    networks:
-      - "app-network"
+    network_mode: "host"
+    # networks:
+    #   - "app-network"
     
 
   # pgadmin:
@@ -130,12 +139,14 @@ services:
   #     - "5050:80"
   #   depends_on:
   #     - db-postgresql
+  #   # network_mode: "bridge"  
   #   networks:
   #     - app-network  
 
 # networks:
 #   app-network:
 
-networks:
-  app-network:
-    external: true
+# networks:
+#   app-network:
+    # driver: host
+    # external: true

@@ -15,7 +15,6 @@ import jakarta.inject.Singleton;
 public class CacheService {
 
     private Set<String> apelidos = new HashSet<>(100000);
-
     private LinkedHashMap<UUID, Pessoas> pessoas = new LinkedHashMap<>(100000);
 
     public boolean apelidoExists(String apelido) {

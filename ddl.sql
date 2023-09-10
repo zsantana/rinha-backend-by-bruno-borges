@@ -23,17 +23,14 @@ CREATE TABLE PUBLIC."PESSOAS" (
     "NASCIMENTO" varchar(12) not null,
     "NOME" varchar(100) not null,
     "STACK" varchar(255),
-    primary key ("ID")
+    primary key ("ID"),
+    ,BUSCA_TRGM TEXT GENERATED ALWAYS AS (
+        NOME || ' ' || APELIDO || ' ' || COALESCE(STACK, '')
+    ) STORED not null
 );
 
---CREATE EXTENSION IF NOT EXISTS pg_trgm SCHEMA pg_catalog; 
 
---CREATE INDEX idx_pessoas_apelido_trgm ON PUBLIC."PESSOAS" USING gin("APELIDO" gin_trgm_ops);
---CREATE INDEX idx_pessoas_nome_trgm ON PUBLIC."PESSOAS" USING gin("NOME" gin_trgm_ops);
---CREATE INDEX idx_pessoas_stack_trgm ON PUBLIC."PESSOAS" USING gin("STACK" gin_trgm_ops);
---CREATE INDEX idx_pessoas_search_trgm ON PUBLIC."PESSOAS" USING gin("SEARCH" gin_trgm_ops);
---CREATE INDEX idx_pessoas_search_trgm ON PUBLIC."PESSOAS" USING gin(lower("APELIDO") gin_trgm_ops, lower("NOME") gin_trgm_ops, lower("STACK") gin_trgm_ops);
-
---CREATE INDEX idx_pessoas_search_trgm ON PUBLIC."PESSOAS" USING gin(("APELIDO" || "NOME" || "STACK") gin_trgm_ops);
+CREATE INDEX CONCURRENTLY IF NOT EXISTS IDX_PESSOAS_BUSCA_TGRM ON PESSOA USING GIST (BUSCA_TRGM GIST_TRGM_OPS(siglen=256)) 
+INCLUDE(apelido, nascimento, nome, publicID, stack);
 
 ALTER TABLE PUBLIC."PESSOAS" OWNER TO rinha;

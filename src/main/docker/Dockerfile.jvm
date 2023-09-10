@@ -1,6 +1,5 @@
 FROM registry.access.redhat.com/ubi8/openjdk-17:1.16
 # FROM azul/zulu-openjdk:17-latest
-#FROM registry.access.redhat.com/ubi8/ubi-minimal
 
 ENV LANGUAGE='en_US:en'
 
@@ -11,6 +10,16 @@ COPY --chown=185 target/quarkus-app/app/ /deployments/app/
 COPY --chown=185 target/quarkus-app/quarkus/ /deployments/quarkus/
 
 EXPOSE 8080
+
+# Monitoramento da JVM
+# EXPOSE 1099
+
+# -Dcom.sun.management.jmxremote \
+# -Dcom.sun.management.jmxremote.port=1099 \
+# -Dcom.sun.management.jmxremote.rmi.port=1099 \
+# -Dcom.sun.management.jmxremote.ssl=false \
+# -Dcom.sun.management.jmxremote.authenticate=false \
+
 USER 185
 
 # ENV QUARKUS_VERTX_MAX_EVENT_LOOP_EXECUTE_TIME=300S
@@ -47,9 +56,8 @@ ENV JAVA_OPTS="-XX:+AlwaysPreTouch \
   -Dio.quarkus.vertx.core.runtime.context.VertxContextSafetyToggle.I_HAVE_CHECKED_EVERYTHING=true \
   -Djboss.threads.eqe.statistics=false \
   -Dmutiny.disableCallBackDecorators=true \
+  -Dmutiny.disableCallBackDecorators=true \
   $@"
 
 #ENV JAVA_APP_JAR="/deployments/quarkus-run.jar"
 ENTRYPOINT [ "/opt/jboss/container/java/run/run-java.sh" ]
-
-#ENTRYPOINT java ${JAVA_OPTS} -jar /deployments/quarkus-run.jar

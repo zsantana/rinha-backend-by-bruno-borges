@@ -5,6 +5,10 @@ import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
 
+import org.hibernate.annotations.Generated;
+
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
 import io.quarkus.hibernate.reactive.panache.PanacheEntity;
 import io.quarkus.hibernate.reactive.panache.PanacheEntityBase;
 import jakarta.persistence.Cacheable;
@@ -38,6 +42,11 @@ public class Pessoas extends PanacheEntityBase {
     @Column(name = "STACK" )
     @Convert(converter = StringListConverter.class)
     private List<String> stack = Collections.emptyList();
+
+    @Column(name = "BUSCA_TRGM")
+    @Generated
+    @JsonIgnore
+    public String busca;
 
     public UUID getId() {
         return id;
