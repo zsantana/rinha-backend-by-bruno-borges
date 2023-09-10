@@ -63,8 +63,7 @@ $ docker-compose -f docker-compose-native.yml --env-file ./.env up
 * Ajuste no Script DDL com obrigatoriedade somente no campo apelido
 * Ajuste no cache local para 100k (Total de registros do teste de stress)
 * Busca de dados no cache, caso contrário, faz busca no bando de dados
-* Aumento de sessões do Postgres para 400 e cada POD com 100 sessões simultâneas
-* Alteração do método post usando chamada nativa (Panache.withTransaction) ao invés da notação CDI
+* Aumento de sessões do Postgres para 400 e cada POD com 150 sessões simultâneas
 
 
 
