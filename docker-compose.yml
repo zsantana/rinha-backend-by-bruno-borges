@@ -108,9 +108,9 @@ services:
     ports:
       - "5432:5432"
     volumes:
-      #- ./ddl.sql:/docker-entrypoint-initdb.d/ddl.sql
-      - ./postgresql.conf:/docker-entrypoint-initdb.d/postgresql.conf
-    command: postgres -c config_file=/docker-entrypoint-initdb.d/postgresql.conf  
+      - ./ddl.sql:/docker-entrypoint-initdb.d/ddl.sql
+      - ./postgresql.conf:/etc/postgresql/postgresql.conf # Mapeie o arquivo de configuração
+    command: postgres -c config_file=/etc/postgresql/postgresql.conf # Use o caminho correto no comando
     deploy:
       resources:
         limits:
