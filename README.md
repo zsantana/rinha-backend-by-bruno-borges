@@ -14,6 +14,13 @@ https://github.com/brunoborges/rinha-app
 https://github.com/viniciusfcf/rinha-de-backend-2023-q3/tree/main/quarkus-app-revanche
 
 
+## Atenção!!!
+Antes do build criar arquivo .env com as variáveis:
+DATABASE_USERNAME=
+DATABASE_PASSWORD=
+DATABASE_URL=
+SERVER_PORT=
+
 ## ✔️ Required
 * Maven: 3.8.4
 * Java version: 17
