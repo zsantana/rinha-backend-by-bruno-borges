@@ -1,0 +1,152 @@
+version: '3.9'
+#name: 'rinha-brunoborges'
+
+services:
+  api1:
+    build:
+      context: .
+      dockerfile: src/main/docker/Dockerfile.jvm
+    hostname: api1
+    environment:
+      - SERVER_PORT=8080
+      - DATABASE_URL=vertx-reactive:postgresql://localhost:5432/rinhadb
+      - DATABASE_USERNAME=rinha
+      - DATABASE_PASSWORD=rinha123
+    depends_on:
+      db-postgresql:
+        condition: service_healthy
+    ulimits:
+      nofile:
+        soft: 1000000
+        hard: 1000000
+    deploy:
+      resources:
+        limits:
+          cpus: '0.35'
+          memory: '512MB'
+    healthcheck:
+      test: curl -o /dev/null -s --retry 0 --head http://localhost:8080/ || exit 1
+      interval: 10s
+      retries: 60
+      start_period: 20s
+      timeout: 5s
+    network_mode: "host"  
+    # networks:
+    #   - "app-network"
+
+  api2:
+    build:
+      context: .
+      dockerfile: src/main/docker/Dockerfile.jvm
+    hostname: api2
+    environment:
+      - SERVER_PORT=8090
+      - DATABASE_URL=vertx-reactive:postgresql://localhost:5432/rinhadb
+      - DATABASE_USERNAME=rinha
+      - DATABASE_PASSWORD=rinha123
+    # ports:
+    #   - "8090:8080"  
+    depends_on:
+      db-postgresql:
+        condition: service_healthy
+    ulimits:
+      nofile:
+        soft: 1000000
+        hard: 1000000
+    deploy:
+      resources:
+        limits:
+          cpus: '0.35'
+          memory: '512MB'
+    healthcheck:
+      test: curl -o /dev/null -s --retry 0 --head http://localhost:8090/ || exit 1
+      interval: 10s
+      retries: 60
+      start_period: 20s
+      timeout: 5s
+    network_mode: "host"    
+    # networks:
+    #   - "app-network"
+
+  nginx:
+    image: nginx:latest
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      api1:
+        condition: service_healthy
+      api2:
+        condition: service_healthy
+    ports:
+      - "9999:9999"
+    ulimits:
+          nofile:
+            soft: 1000000
+            hard: 1000000
+    deploy:
+      resources:
+        limits:
+          cpus: '0.9'
+          memory: '0.5GB'
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"  # Tamanho máximo do arquivo de log
+        max-file: "10"     # Número máximo de arquivos de log
+    network_mode: "host"
+    # networks:
+    #   - "app-network"
+
+  db-postgresql:
+    image: postgres:latest
+    hostname: db-postgresql
+    environment:
+      - POSTGRES_PASSWORD=rinha123
+      - POSTGRES_USER=rinha
+      - POSTGRES_DB=rinhadb
+     # - POSTGRES_INITDB_ARGS=--data-checksums=off  # Desligar data checksums para melhorar a inserção de dados
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./ddl.sql:/docker-entrypoint-initdb.d/ddl.sql
+      - ./postgresql.conf:/etc/postgresql/postgresql.conf # Mapeie o arquivo de configuração
+    command: postgres -c config_file=/etc/postgresql/postgresql.conf # Use o caminho correto no comando
+    deploy:
+      resources:
+        limits:
+          cpus: '0.9'
+          memory: '1.5GB'
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 10s
+    network_mode: "host"
+    # networks:
+    #   - "app-network"
+    
+
+  # pgadmin:
+  #   container_name: pgadmin
+  #   hostname: pgadmin
+  #   image: dpage/pgadmin4
+  #   restart: unless-stopped
+  #   environment:
+  #     - PGADMIN_DEFAULT_EMAIL=admin@admin.com
+  #     - PGADMIN_DEFAULT_PASSWORD=admin
+  #   ports:
+  #     - "5050:80"
+  #   depends_on:
+  #     - db-postgresql
+  #   # network_mode: "bridge"  
+  #   networks:
+  #     - app-network  
+
+# networks:
+#   app-network:
+
+# networks:
+#   app-network:
+    # driver: host
+    # external: true
